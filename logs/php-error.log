@@ -1,0 +1,4 @@
+[11-Apr-2026 14:56:15 UTC] PHP Deprecated:  Function curl_close() is deprecated since 8.5, as it has no effect since PHP 8.0 in C:\Users\sharu\temp\api\create-order.php on line 77
+[11-Apr-2026 15:20:48 UTC] PHP Deprecated:  Function curl_close() is deprecated since 8.5, as it has no effect since PHP 8.0 in C:\Users\sharu\temp\api\create-order.php on line 77
+[11-Apr-2026 15:29:17 UTC] PHP Deprecated:  Function curl_close() is deprecated since 8.5, as it has no effect since PHP 8.0 in C:\Users\sharu\temp\api\create-order.php on line 77
+[11-Apr-2026 15:39:36 UTC] PHP Deprecated:  Function curl_close() is deprecated since 8.5, as it has no effect since PHP 8.0 in C:\Users\sharu\temp\api\create-order.php on line 79

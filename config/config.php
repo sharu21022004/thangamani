@@ -4,8 +4,8 @@
 //  ⚠️  Keep this file out of version control / public access
 // ============================================================
 
-define('RAZORPAY_KEY_ID',     'rzp_test_SaDxLuhgtKLAB7');   // Replace with live key in production
-define('RAZORPAY_KEY_SECRET', 'EPapDFACUO8CTOYiIH04p7C9');  // From Razorpay Dashboard
+define('RAZORPAY_KEY_ID','rzp_test_ScEcYNHjoOciug');   // Replace with live key in production
+define('RAZORPAY_KEY_SECRET','bw2AEcGJ897l3o6V1NLRdXiM');  // From Razorpay Dashboard
 
 // SMTP / Email settings (use your actual mail credentials)
 define('SMTP_HOST',     'smtp.gmail.com');

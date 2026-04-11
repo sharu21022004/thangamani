@@ -41,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // ── Parse body ────────────────────────────────────────────────
 $body = json_decode(file_get_contents('php://input'), true);
+// 🔥 DEBUG (paste here)
+file_put_contents(
+    __DIR__ . '/../logs/debug.log',
+    json_encode($body) . "\n",
+    FILE_APPEND
+);
 
 $required = [
     'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
@@ -65,16 +71,33 @@ if ($totalAmount <= 0) {
 }
 
 // ── Verify Razorpay signature ─────────────────────────────────
-$isValid = verifyRazorpaySignature(
-    $body['razorpay_order_id'],
-    $body['razorpay_payment_id'],
-    $body['razorpay_signature'],
+$orderId   = $body['razorpay_order_id'] ?? '';
+$paymentId = $body['razorpay_payment_id'] ?? '';
+$signature = $body['razorpay_signature'] ?? '';
+
+if (!$orderId || !$paymentId || !$signature) {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Missing Razorpay fields'
+    ], 400);
+}
+
+// Generate expected signature
+$generatedSignature = hash_hmac(
+    'sha256',
+    $orderId . "|" . $paymentId,
     RAZORPAY_KEY_SECRET
 );
 
-if (!$isValid) {
-    jsonResponse(['success' => false, 'error' => 'Payment verification failed. Signature mismatch.'], 400);
+// Compare signatures
+if (!hash_equals($generatedSignature, $signature)) {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Signature verification failed'
+    ], 400);
 }
+
+
 
 // ── Build order record ────────────────────────────────────────
 $orderNumber = generateOrderNumber();

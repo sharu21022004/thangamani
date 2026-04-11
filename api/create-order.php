@@ -1,10 +1,15 @@
 <?php
 // ============================================================
-//  api/create-order.php — FINAL WORKING VERSION
+// create-order.php — Razorpay order creation (FINAL)
 // ============================================================
 
+ob_start(); // 🔥 IMPORTANT
+
 error_reporting(E_ALL);
-ini_set('display_errors', 1);
+ini_set('display_errors', 0); // 🔥 prevent HTML errors
+
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/php-error.log');
 
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
@@ -39,11 +44,11 @@ $amountPaise  = $amountRupees * 100;
 $payload = json_encode([
     'amount'          => $amountPaise,
     'currency'        => CURRENCY,
-    'receipt'         => 'order_' . time(),
+    'receipt'         => generateOrderNumber(),
     'payment_capture' => 1,
 ]);
 
-// Initialize curl
+// Razorpay API call
 $ch = curl_init('https://api.razorpay.com/v1/orders');
 
 curl_setopt_array($ch, [
@@ -52,15 +57,17 @@ curl_setopt_array($ch, [
     CURLOPT_POSTFIELDS     => $payload,
     CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
     CURLOPT_USERPWD        => RAZORPAY_KEY_ID . ':' . RAZORPAY_KEY_SECRET,
-    CURLOPT_SSL_VERIFYPEER => false, // IMPORTANT: avoids SSL issue locally
+    CURLOPT_SSL_VERIFYPEER => false, // local fix
 ]);
 
 $response = curl_exec($ch);
 
-// Handle curl error
+// Handle curl failure
 if ($response === false) {
     $error = curl_error($ch);
-    curl_close($ch);
+    if (function_exists('curl_close')) {
+    @curl_close($ch);
+}
 
     jsonResponse([
         'success' => false,
@@ -74,18 +81,18 @@ curl_close($ch);
 // Decode response
 $rzpOrder = json_decode($response, true);
 
-// Handle Razorpay API error
+// Handle Razorpay error
 if ($httpCode !== 200 || empty($rzpOrder['id'])) {
     $errMsg = $rzpOrder['error']['description'] ?? 'Razorpay order creation failed';
 
     jsonResponse([
         'success' => false,
         'error'   => $errMsg,
-        'debug'   => $response // helpful for debugging
+        'debug'   => $response
     ], 500);
 }
 
-// Success response
+// Success
 jsonResponse([
     'success'  => true,
     'order_id' => $rzpOrder['id'],

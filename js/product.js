@@ -118,7 +118,7 @@ async function confirmOrder() {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        razorpay_order_id:   response.razorpay_order_id,
+                        razorpay_order_id:   options.order_id, // 🔥 FIX
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature:  response.razorpay_signature,
                         customer_name:       name,
