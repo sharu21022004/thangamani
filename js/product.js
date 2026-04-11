@@ -40,11 +40,12 @@ function openOrderPopup() {
 async function confirmOrder() {
     const name    = document.getElementById('custName').value.trim();
     const phone   = document.getElementById('custPhone').value.trim();
+    const email = document.getElementById('custEmail').value.trim();
     const city    = document.getElementById('custCity').value.trim();
     const pincode = document.getElementById('custPincode').value.trim();
     const address = document.getElementById('custAddress').value.trim();
 
-    if (!name || !phone || !city || !pincode || !address) {
+    if (!name || !email || !phone || !city || !pincode || !address) {
         alert('Please fill in all details before confirming.');
         return;
     }
@@ -123,6 +124,7 @@ async function confirmOrder() {
                         razorpay_signature:  response.razorpay_signature,
                         customer_name:       name,
                         customer_phone:      phone,
+                        customer_email:      email,
                         customer_city:       city,
                         customer_pincode:    pincode,
                         customer_address:    address,
@@ -132,10 +134,9 @@ async function confirmOrder() {
                 });
                 verifyData = await res.json();
             } catch (err) {
-                alert('Payment verification failed. Please contact support.');
-                console.error('verify-payment error:', err);
-                return;
-            }
+    console.error(err);
+    alert('Verify failed: ' + err.message);
+}
 
             if (!verifyData.success) {
                 alert('Payment verification failed: ' + verifyData.error);

@@ -1,24 +1,6 @@
 <?php
 // ============================================================
-//  api/verify-payment.php  —  Verify Razorpay payment & send email
-//
-//  POST /api/verify-payment.php
-//  Body (JSON):
-//    {
-//      "razorpay_order_id":   "order_XXXXX",
-//      "razorpay_payment_id": "pay_XXXXX",
-//      "razorpay_signature":  "<hmac>",
-//      "customer_name":       "John",
-//      "customer_phone":      "9876543210",
-//      "customer_city":       "Chennai",
-//      "customer_pincode":    "600001",
-//      "customer_address":    "123 Main St",
-//      "cart_items":          ["PeanutBurfi x2 = ₹90", ...],
-//      "total_amount":        90
-//    }
-//
-//  Returns (JSON):
-//    { "success": true, "order_number": "TM-20250411-4712" }
+//  api/verify-payment.php — FINAL STABLE (NO PDF)
 // ============================================================
 
 header('Content-Type: application/json');
@@ -35,23 +17,42 @@ require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/mailer.php';
 
+// Allow only POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'error' => 'Method not allowed'], 405);
 }
 
-// ── Parse body ────────────────────────────────────────────────
-$body = json_decode(file_get_contents('php://input'), true);
-// 🔥 DEBUG (paste here)
+// ── Parse request ────────────────────────────────────────────
+$raw = file_get_contents('php://input');
+$body = json_decode($raw, true);
+
+if ($body === null) {
+    jsonResponse([
+        'success' => false,
+        'error' => 'Invalid JSON input'
+    ], 400);
+}
+
+// Debug log
 file_put_contents(
     __DIR__ . '/../logs/debug.log',
     json_encode($body) . "\n",
     FILE_APPEND
 );
 
+// ── Required fields ──────────────────────────────────────────
 $required = [
-    'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature',
-    'customer_name', 'customer_phone', 'customer_city',
-    'customer_pincode', 'customer_address', 'cart_items', 'total_amount',
+    'razorpay_order_id',
+    'razorpay_payment_id',
+    'razorpay_signature',
+    'customer_name',
+    'customer_phone',
+    'customer_email',
+    'customer_city',
+    'customer_pincode',
+    'customer_address',
+    'cart_items',
+    'total_amount',
 ];
 
 foreach ($required as $field) {
@@ -60,7 +61,7 @@ foreach ($required as $field) {
     }
 }
 
-// ── Validate cart_items ───────────────────────────────────────
+// ── Validate cart ────────────────────────────────────────────
 if (!is_array($body['cart_items']) || count($body['cart_items']) === 0) {
     jsonResponse(['success' => false, 'error' => 'Cart is empty'], 400);
 }
@@ -70,26 +71,17 @@ if ($totalAmount <= 0) {
     jsonResponse(['success' => false, 'error' => 'Invalid total amount'], 400);
 }
 
-// ── Verify Razorpay signature ─────────────────────────────────
-$orderId   = $body['razorpay_order_id'] ?? '';
-$paymentId = $body['razorpay_payment_id'] ?? '';
-$signature = $body['razorpay_signature'] ?? '';
+// ── Signature verification ───────────────────────────────────
+$orderId   = $body['razorpay_order_id'];
+$paymentId = $body['razorpay_payment_id'];
+$signature = $body['razorpay_signature'];
 
-if (!$orderId || !$paymentId || !$signature) {
-    jsonResponse([
-        'success' => false,
-        'error' => 'Missing Razorpay fields'
-    ], 400);
-}
-
-// Generate expected signature
 $generatedSignature = hash_hmac(
     'sha256',
     $orderId . "|" . $paymentId,
     RAZORPAY_KEY_SECRET
 );
 
-// Compare signatures
 if (!hash_equals($generatedSignature, $signature)) {
     jsonResponse([
         'success' => false,
@@ -97,44 +89,42 @@ if (!hash_equals($generatedSignature, $signature)) {
     ], 400);
 }
 
-
-
-// ── Build order record ────────────────────────────────────────
+// ── Build order ──────────────────────────────────────────────
 $orderNumber = generateOrderNumber();
 
 $order = [
-    'order_number'     => $orderNumber,
-    'payment_id'       => sanitize($body['razorpay_payment_id']),
-    'razorpay_order_id'=> sanitize($body['razorpay_order_id']),
-    'customer_name'    => sanitize($body['customer_name']),
-    'customer_phone'   => sanitize($body['customer_phone']),
-    'customer_city'    => sanitize($body['customer_city']),
-    'customer_pincode' => sanitize($body['customer_pincode']),
-    'customer_address' => sanitize($body['customer_address']),
-    'cart_items'       => array_map('sanitize', $body['cart_items']),
-    'total_amount'     => $totalAmount,
-    'created_at'       => date('Y-m-d H:i:s'),
+    'order_number'      => $orderNumber,
+    'payment_id'        => sanitize($paymentId),
+    'razorpay_order_id' => sanitize($orderId),
+    'customer_name'     => sanitize($body['customer_name']),
+    'customer_phone'    => sanitize($body['customer_phone']),
+    'customer_email'    => sanitize($body['customer_email']),
+    'customer_city'     => sanitize($body['customer_city']),
+    'customer_pincode'  => sanitize($body['customer_pincode']),
+    'customer_address'  => sanitize($body['customer_address']),
+    'cart_items'        => array_map('sanitize', $body['cart_items']),
+    'total_amount'      => $totalAmount,
+    'created_at'        => date('Y-m-d H:i:s'),
 ];
 
-// ── Optionally persist to a log file ─────────────────────────
-//  (replace with a real DB insert in production)
-$logDir  = __DIR__ . '/../logs';
+// ── Save order ───────────────────────────────────────────────
+$logDir = __DIR__ . '/../logs';
 if (!is_dir($logDir)) {
     mkdir($logDir, 0750, true);
 }
+
 file_put_contents(
     $logDir . '/orders.jsonl',
     json_encode($order, JSON_UNESCAPED_UNICODE) . "\n",
     FILE_APPEND | LOCK_EX
 );
 
-// ── Send email notification ───────────────────────────────────
+// ── Send emails ──────────────────────────────────────────────
 $emailResult = sendOrderEmail($order);
 
-// Return success even if email fails (don't block the customer)
+// ── Response ─────────────────────────────────────────────────
 jsonResponse([
-    'success'      => true,
+    'success' => true,
     'order_number' => $orderNumber,
-    'email_sent'   => $emailResult['success'],
-    'email_error'  => $emailResult['error'] ?? null,
+    'email_sent' => $emailResult['success']
 ]);
