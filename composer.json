@@ -1,0 +1,17 @@
+{
+    "name": "thangamani/backend",
+    "description": "Thanga Mani — PHP backend for Razorpay payments & order emails",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "ThangaMani\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
