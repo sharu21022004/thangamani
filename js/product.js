@@ -75,13 +75,11 @@ async function confirmOrder() {
     const modal   = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
 
-    // ── Step 1: Create Razorpay order on the server ───────────
-    let rzpOrderData;
     try {
-        const res = await fetch('api/create-order.php', {
+        const res = await fetch('/api/create-order', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ amount: totalAmount }),
+            body:    JSON.stringify({ totalAmount }),
         });
         rzpOrderData = await res.json();
     } catch (err) {
@@ -90,7 +88,7 @@ async function confirmOrder() {
         return;
     }
 
-    if (!rzpOrderData.success) {
+    if (rzpOrderData.error) {
         alert('Order creation failed: ' + rzpOrderData.error);
         return;
     }
@@ -115,11 +113,11 @@ async function confirmOrder() {
         handler: async function (response) {
             let verifyData;
             try {
-                const res = await fetch('api/verify-payment.php', {
+                const res = await fetch('/api/verify-payment', {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        razorpay_order_id:   options.order_id, // 🔥 FIX
+                        razorpay_order_id:   response.razorpay_order_id,
                         razorpay_payment_id: response.razorpay_payment_id,
                         razorpay_signature:  response.razorpay_signature,
                         customer_name:       name,

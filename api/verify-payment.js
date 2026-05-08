@@ -1,39 +1,29 @@
-require('dotenv').config();
-const express  = require('express');
-const cors     = require('cors');
-const crypto   = require('crypto');
+const crypto = require('crypto');
 const Razorpay = require('razorpay');
-const admin    = require('firebase-admin');
+const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 
-const app = express();
-/* ── CORS FIX ───────────────────────────────────────────── */
-app.use(cors({
-    origin: true, // Allow all for deployment
-    methods: ["GET", "POST"],
-    credentials: true
-}));
-app.use(express.json());
-
-// ── Firebase init ──────────────────────────────────────────────
-admin.initializeApp({
-    credential: admin.credential.cert({
-        projectId:   process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey:  process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    }),
-});
+// Firebase init
+if (!admin.apps.length) {
+    admin.initializeApp({
+        credential: admin.credential.cert({
+            projectId: process.env.FIREBASE_PROJECT_ID,
+            clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+            privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        }),
+    });
+}
 const db = admin.firestore();
 
-// ── Razorpay init ─────────────────────────────────────────────
+// Razorpay init
 const razorpay = new Razorpay({
-    key_id:     process.env.RAZORPAY_KEY_ID,
+    key_id: process.env.RAZORPAY_KEY_ID,
     key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// ── Helpers ───────────────────────────────────────────────────
+// Helper
 function generateOrderNumber() {
-    const d    = new Date();
+    const d = new Date();
     const date = d.getFullYear().toString()
         + String(d.getMonth() + 1).padStart(2, '0')
         + String(d.getDate()).padStart(2, '0');
@@ -44,8 +34,8 @@ function generateOrderNumber() {
 async function sendOrderEmail(order) {
     const transporter = nodemailer.createTransporter({
         host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT,
-        secure: false, // true for 465, false for other ports
+        port: parseInt(process.env.SMTP_PORT),
+        secure: false,
         auth: {
             user: process.env.SMTP_USERNAME,
             pass: process.env.SMTP_PASSWORD,
@@ -126,38 +116,11 @@ async function sendOrderEmail(order) {
     }
 }
 
-// ── POST /create-order ────────────────────────────────────────
-// Frontend calls this → gets a Razorpay order_id back
-// Key SECRET never leaves this file
-app.post('/create-order', async (req, res) => {
-    const { totalAmount } = req.body;
-    if (!totalAmount || totalAmount <= 0)
-        return res.status(400).json({ error: 'Invalid amount' });
-
-    try {
-        const orderNumber = generateOrderNumber();
-        const order = await razorpay.orders.create({
-            amount:   Math.round(totalAmount * 100),
-            currency: 'INR',
-            receipt:  orderNumber,
-        });
-
-        res.json({
-            order_id:     order.id,
-            order_number: orderNumber,
-            key_id:       process.env.RAZORPAY_KEY_ID,   // only public key sent to frontend
-            amount:       totalAmount,
-        });
-    } catch (err) {
-        console.error('Create order error:', err);
-        res.status(500).json({ error: 'Failed to create Razorpay order' });
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
     }
-});
 
-// ── POST /verify-payment ──────────────────────────────────────
-// Verifies HMAC signature — prevents fake payment success attacks
-// Saves order to Firebase Firestore
-app.post('/verify-payment', async (req, res) => {
     const {
         razorpay_order_id,
         razorpay_payment_id,
@@ -173,7 +136,7 @@ app.post('/verify-payment', async (req, res) => {
     } = req.body;
 
     // Signature check
-    const body     = razorpay_order_id + '|' + razorpay_payment_id;
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expected = crypto
         .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
         .update(body)
@@ -217,13 +180,6 @@ app.post('/verify-payment', async (req, res) => {
         res.json({ success: true, order_number: orderNumber, email_sent: emailResult.success });
     } catch (err) {
         console.error('Firebase save error:', err);
-        // Payment was verified, return success even if DB write fails
         res.json({ success: true, order_number: orderNumber, dbError: true });
     }
-});
-
-// ── GET /health ────────────────────────────────────────────────
-app.get('/health', (_, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`✅ Thanga Mani backend running on port ${PORT}`));
+};
