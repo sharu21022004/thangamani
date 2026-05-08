@@ -61,3 +61,7 @@ Notes:
 - PHP files are kept for reference but not used in Vercel deployment.
 - Logs are now handled via console.log and Firebase instead of file writes.
 - For production, secure environment variables and update CORS origins.
+
+Recent fixes:
+- Fixed Vercel routing by explicitly rewriting `/` to `/index.html` in `vercel.json`.
+- Corrected nodemailer usage from `createTransporter` to `createTransport` in both `backend/server.js` and `api/verify-payment.js`.
