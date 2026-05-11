@@ -4,8 +4,8 @@
 //  ⚠️  Keep this file out of version control / public access
 // ============================================================
 
-define('RAZORPAY_KEY_ID', getenv('RAZORPAY_KEY_ID') ?: 'rzp_test_Sn8IDj9oXoKKEn');   // Replace with live key in production
-define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: '00bY10W9VnzgGtrBGgfGgjfn');  // From Razorpay Dashboard
+define('RAZORPAY_KEY_ID', getenv('RAZORPAY_KEY_ID') ?: 'rzp_test_So8Wc89156R8zu');   // Replace with live key in production
+define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: 'rSC4BUya0AjBekgmrG0xBWyF');  // From Razorpay Dashboard
 
 if (RAZORPAY_KEY_ID === '' || RAZORPAY_KEY_SECRET === '') {
     die(json_encode(['success' => false, 'error' => 'Razorpay keys are missing in config/config.php']));
