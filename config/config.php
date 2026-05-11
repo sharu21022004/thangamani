@@ -4,8 +4,12 @@
 //  ⚠️  Keep this file out of version control / public access
 // ============================================================
 
-define('RAZORPAY_KEY_ID','rzp_test_ScEcYNHjoOciug');   // Replace with live key in production
-define('RAZORPAY_KEY_SECRET','bw2AEcGJ897l3o6V1NLRdXiM');  // From Razorpay Dashboard
+define('RAZORPAY_KEY_ID', getenv('RAZORPAY_KEY_ID') ?: 'rzp_test_Sn8IDj9oXoKKEn');   // Replace with live key in production
+define('RAZORPAY_KEY_SECRET', getenv('RAZORPAY_KEY_SECRET') ?: '00bY10W9VnzgGtrBGgfGgjfn');  // From Razorpay Dashboard
+
+if (RAZORPAY_KEY_ID === '' || RAZORPAY_KEY_SECRET === '') {
+    die(json_encode(['success' => false, 'error' => 'Razorpay keys are missing in config/config.php']));
+}
 
 // SMTP / Email settings (use your actual mail credentials)
 define('SMTP_HOST',     'smtp.gmail.com');

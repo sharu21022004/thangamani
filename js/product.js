@@ -76,10 +76,10 @@ async function confirmOrder() {
     if (modal) modal.hide();
 
     try {
-        const res = await fetch('/api/create-order', {
+        const res = await fetch('api/create-order.php', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ totalAmount }),
+            body:    JSON.stringify({ amount: totalAmount }),
         });
         rzpOrderData = await res.json();
     } catch (err) {
@@ -88,7 +88,7 @@ async function confirmOrder() {
         return;
     }
 
-    if (rzpOrderData.error) {
+    if (!rzpOrderData.success) {
         alert('Order creation failed: ' + rzpOrderData.error);
         return;
     }
@@ -113,7 +113,7 @@ async function confirmOrder() {
         handler: async function (response) {
             let verifyData;
             try {
-                const res = await fetch('/api/verify-payment', {
+                const res = await fetch('api/verify-payment.php', {
                     method:  'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

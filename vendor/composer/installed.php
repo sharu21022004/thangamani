@@ -3,7 +3,7 @@
         'name' => 'thangamani/backend',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => 'e7f2979322df13ca4a4823931a15b991355342ed',
+        'reference' => 'ee0bc1fd7f96feeb870ce7e64330ac9a1d2a071e',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -22,7 +22,7 @@
         'thangamani/backend' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => 'e7f2979322df13ca4a4823931a15b991355342ed',
+            'reference' => 'ee0bc1fd7f96feeb870ce7e64330ac9a1d2a071e',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

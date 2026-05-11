@@ -1,67 +1,83 @@
-Analysis of Files for Vercel Deployment
+Analysis of Files for Local and Hostinger Deployment
 =====================================
 
 Project Overview:
 - The project is a web application for Thanga Mani, an e-commerce site for peanut burfi.
 - It uses Razorpay for payments, Firebase for data storage, and email notifications.
-- Originally mixed PHP and Node.js backends, but converted to Node.js for Vercel compatibility.
+- Backend is PHP-based for compatibility with Hostinger shared hosting.
 
 Errors Identified and Corrected:
 ==================================
 
-1. **Inconsistent Backend Architecture**:
-   - Error: Project had both PHP API endpoints (/api/create-order.php, /api/verify-payment.php) and a Node.js server (backend/server.js).
-   - Correction: Standardized on Node.js backend. Created serverless functions in api/create-order.js and api/verify-payment.js for Vercel deployment. Updated frontend (js/product.js) to call the new endpoints.
+1. **Vercel-Specific Configurations Removed**:
+   - Removed vercel.json, root package.json, and Node.js serverless functions (api/create-order.js, api/verify-payment.js).
+   - Reverted frontend to use PHP endpoints (/api/create-order.php, /api/verify-payment.php).
 
-2. **Missing Email Functionality in Node.js**:
-   - Error: Node.js server.js had no email sending, while PHP had PHPMailer integration.
-   - Correction: Added nodemailer dependency to package.json. Implemented sendOrderEmail function in server.js and api/verify-payment.js to send admin and customer emails using SMTP.
+2. **Backend Standardization**:
+   - Reverted to PHP backend for local development (using XAMPP/LAMP) and Hostinger deployment.
+   - Removed nodemailer from backend/package.json as email is handled by PHP PHPMailer.
 
-3. **API Field Mismatches**:
-   - Error: Node.js /verify-payment expected different field names (orderNumber, totalAmount, customer object) compared to PHP (customer_name, etc.).
-   - Correction: Updated server.js and api/verify-payment.js to accept the same fields as PHP for compatibility.
-
-4. **CORS Configuration**:
-   - Error: CORS in server.js restricted to specific origins, not suitable for Vercel deployment.
-   - Correction: Updated CORS to allow all origins for deployment flexibility.
-
-5. **Frontend API Calls**:
-   - Error: product.js called PHP endpoints with relative paths and different request bodies.
-   - Correction: Changed to absolute paths (/api/create-order, /api/verify-payment) and matched request/response formats.
-
-6. **Deployment Configuration**:
-   - Error: No Vercel-specific configuration files.
-   - Correction: Created vercel.json for routing, root package.json with dependencies, and .env.example for environment variables.
-
-7. **Unnecessary Code in PHP**:
-   - Error: In create-order.php, redundant check for curl_close function existence.
-   - Correction: Removed unnecessary check (curl_close always exists).
-
-Files Modified/Created:
-========================
-- backend/package.json: Added nodemailer dependency.
-- backend/server.js: Added nodemailer, updated CORS, API fields, and email sending.
-- js/product.js: Updated API endpoints and request formats.
-- api/create-order.js: New serverless function for order creation.
-- api/verify-payment.js: New serverless function for payment verification with email.
-- package.json: New root package.json for Vercel.
-- vercel.json: New Vercel configuration.
-- .env.example: New environment variables template.
+Files Modified:
+===============
+- Removed: vercel.json, package.json (root), api/create-order.js, api/verify-payment.js
+- js/product.js: Reverted API calls to PHP endpoints.
+- backend/package.json: Removed nodemailer dependency.
 
 Deployment Instructions:
 ========================
-1. Set up environment variables in Vercel dashboard using .env.example.
-2. Deploy to Vercel using `vercel` CLI or GitHub integration.
-3. Ensure Firebase project is set up and credentials are added.
-4. Update Razorpay keys to live keys for production.
-5. Test payment flow and email sending.
+For Local Development (without XAMPP):
+1. Ensure PHP 8.1+ is installed (run `php -v` to check).
+2. Run `composer install` in project root to install dependencies.
+3. Run `php -S localhost:8000` in project root.
+4. Access at http://localhost:8000
+5. The server is now running - test the payment flow.
+
+For Hostinger:
+1. Upload all files to public_html or subdomain folder.
+2. Ensure PHP 8.1+ is enabled in Hostinger control panel.
+3. Update config/config.php with production credentials:
+   - Change Razorpay keys to live keys
+   - Update SMTP settings if needed
+   - Set correct admin email
+4. Test payment flow.
 
 Notes:
 ======
-- PHP files are kept for reference but not used in Vercel deployment.
-- Logs are now handled via console.log and Firebase instead of file writes.
-- For production, secure environment variables and update CORS origins.
+- PHP backend handles payments, emails, and data storage.
+- Orders are saved to logs/orders.jsonl file.
+- For production, update Razorpay keys to live, and secure SMTP credentials.
 
-Recent fixes:
-- Fixed Vercel routing by explicitly rewriting `/` to `/index.html` in `vercel.json`.
-- Corrected nodemailer usage from `createTransporter` to `createTransport` in both `backend/server.js` and `api/verify-payment.js`.
+Hostinger Readiness Report:
+===========================
+1. Razorpay Credentials:
+   - Current `config/config.php` contains test/fallback values.
+   - The latest local test returned `Authentication failed` from Razorpay in `api/create-order.php`.
+   - This indicates incorrect or invalid Razorpay key/secret values.
+   - Action: replace `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` with the correct Razorpay account keys before upload.
+
+2. API Endpoint Paths:
+   - `js/product.js` is correctly using `api/create-order.php` and `api/verify-payment.php`.
+   - The API folder structure is correct for Hostinger.
+
+3. PHP Dependency & Mailer:
+   - `vendor/` is present and PHPMailer is available.
+   - `includes/mailer.php` uses SMTP credentials from `config/config.php`.
+   - Action: ensure the SMTP username/password are valid and that Hostinger allows outbound SMTP to the configured mail server.
+
+4. Unnecessary Files for Hostinger:
+   - `backend/` contains Node.js code and is not required for Hostinger PHP hosting.
+   - These files can be ignored or removed from the upload to avoid confusion.
+
+5. File system and permissions:
+   - `logs/` directory must be writable by Hostinger for order logs.
+   - `config/config.php` must remain secure and not publicly accessible.
+
+6. Local testing without XAMPP:
+   - Use `php -S localhost:8000` in the project directory.
+   - This is fine for development, but on Hostinger the uploaded files will run under Hostinger PHP.
+
+Summary:
+========
+- Main blocking issue for Hostinger upload: Razorpay authentication failure in `api/create-order.php`.
+- Once valid Razorpay keys are set and SMTP is confirmed, the Hostinger upload should work.
+- Frontend routing and PHP API paths are correctly configured for Hostinger.
